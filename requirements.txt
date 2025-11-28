@@ -1,0 +1,10 @@
+pyspark
+kafka-python
+python-chess
+streamlit
+plotly
+pyarrow
+zstandard
+pandas
+numpy
+
