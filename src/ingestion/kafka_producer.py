@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import threading
 from kafka import KafkaProducer
 from src.ingestion.pgn_parser import parse_pgn_file
 from config.settings import (
@@ -31,26 +32,17 @@ def determine_source_and_topic(filename):
     else:
         return 'unknown', 'unknown', None
 
-def produce_games():
-    print(f"Looking for files in: {RAW_DATA_DIR}")
-    if not os.path.exists(RAW_DATA_DIR):
-        print(f"Directory {RAW_DATA_DIR} does not exist.")
-        return
-
-    files = [f for f in os.listdir(RAW_DATA_DIR) if not f.startswith('.') and os.path.isfile(os.path.join(RAW_DATA_DIR, f))]
-    
-    if not files:
-        print(f"No .zst files found in {RAW_DATA_DIR}")
-        return
-
-    print(f"Found files: {files}")
-    
+def process_files(files, thread_name):
+    """
+    Worker function to process a list of files and send to Kafka.
+    """
     try:
         producer = create_producer()
+        print(f"[{thread_name}] Producer created. Processing {len(files)} files.")
     except Exception as e:
-        print(f"Failed to create Kafka producer: {e}")
+        print(f"[{thread_name}] Failed to create Kafka producer: {e}")
         return
-    
+
     total_games = 0
     
     for filename in files:
@@ -58,16 +50,13 @@ def produce_games():
         source, game_type, topic = determine_source_and_topic(filename)
         
         if not topic:
-            print(f"Skipping {filename}: Could not determine topic")
+            print(f"[{thread_name}] Skipping {filename}: Could not determine topic")
             continue
             
-        print(f"Processing {filename} -> {topic}...")
+        print(f"[{thread_name}] Processing {filename} -> {topic}...")
         
         count = 0
         for game_data in parse_pgn_file(file_path):
-            # if count >= 2000:
-            #    break
-
             # Add source info
             game_data['source'] = source
             game_data['game_type'] = game_type
@@ -76,15 +65,60 @@ def produce_games():
             
             count += 1
             if count % 1000 == 0:
-                print(f"  Sent {count} games...", end='\r')
+                # Use simple print to avoid thread output collision
+                print(f"[{thread_name}] {filename}: Sent {count} games...")
                 
-        print(f"  Finished {filename}: {count} games sent.")
+        print(f"[{thread_name}] Finished {filename}: {count} games sent.")
         total_games += count
         
     producer.flush()
     producer.close()
-    print(f"\nTotal games sent: {total_games}")
+    print(f"[{thread_name}] Completed! Total games sent: {total_games}")
+
+def produce_games():
+    print(f"Looking for files in: {RAW_DATA_DIR}")
+    if not os.path.exists(RAW_DATA_DIR):
+        print(f"Directory {RAW_DATA_DIR} does not exist.")
+        return
+
+    all_files = [f for f in os.listdir(RAW_DATA_DIR) if not f.startswith('.') and os.path.isfile(os.path.join(RAW_DATA_DIR, f))]
+    
+    if not all_files:
+        print(f"No files found in {RAW_DATA_DIR}")
+        return
+
+    # Group files by type
+    casual_files = []
+    professional_files = []
+    
+    for f in all_files:
+        _, game_type, _ = determine_source_and_topic(f)
+        if game_type == 'casual':
+            casual_files.append(f)
+        elif game_type == 'professional':
+            professional_files.append(f)
+            
+    print(f"Found {len(casual_files)} Casual files and {len(professional_files)} Professional files.")
+    
+    threads = []
+    
+    # Start Casual Thread
+    if casual_files:
+        t1 = threading.Thread(target=process_files, args=(casual_files, "Casual-Worker"))
+        t1.start()
+        threads.append(t1)
+        
+    # Start Professional Thread
+    if professional_files:
+        t2 = threading.Thread(target=process_files, args=(professional_files, "Professional-Worker"))
+        t2.start()
+        threads.append(t2)
+        
+    # Wait for all to finish
+    for t in threads:
+        t.join()
+        
+    print("\nAll processing threads finished.")
 
 if __name__ == "__main__":
     produce_games()
-
