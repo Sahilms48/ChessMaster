@@ -65,8 +65,8 @@ def produce_games():
         
         count = 0
         for game_data in parse_pgn_file(file_path):
-            if count >= 2000:
-                break
+            # if count >= 2000:
+            #    break
 
             # Add source info
             game_data['source'] = source

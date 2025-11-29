@@ -23,7 +23,7 @@ def create_spark_session():
 
 def process_stream():
     spark = create_spark_session()
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
     
     # Schema for JSON data
     schema = StructType([
