@@ -130,14 +130,8 @@ ChessMaster/
 
 ## Troubleshooting
 
-### "No module named 'config'"
-Run from the `ChessMaster` directory with venv activated.
-
 ### Kafka connection errors
 Ensure Zookeeper and Kafka broker are running before starting the consumer.
-
-### Spark errors with spaces in path
-The project handles Windows paths with spaces using 8.3 short paths.
 
 ## Tech Stack
 
