@@ -1,0 +1,25 @@
+# Core Dependencies for ChessMaster
+# Python 3.12 recommended
+
+# Data Processing
+pyspark==3.5.0
+pyarrow==21.0.0
+pandas
+numpy==2.3.5
+
+# Kafka Streaming
+kafka-python==2.3.0
+
+# Chess PGN Parsing
+python-chess==1.999
+
+# Dashboard
+streamlit
+plotly
+pillow==12.0.0
+
+# Compression
+zstandard==0.25.0
+
+# Required by PySpark
+py4j==0.10.9.7
