@@ -76,7 +76,7 @@ def process_file(filename):
             producer.send(topic, game_data)
             
             count += 1
-            if count % 5000 == 0:
+            if count % 500 == 0:
                 print(f"[{filename}] Sent {count:,} games...")
                 
     except Exception as e:
