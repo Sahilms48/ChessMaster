@@ -362,6 +362,88 @@ def main():
     
     st.divider()
     
+    # =========================================================================
+    # DATA QUALITY MONITORING (Production Feature from pmxlr8/ChessMaster)
+    # =========================================================================
+    if data:
+        st.markdown("#### 🔧 Data Quality Monitoring")
+        st.caption("*Production-grade quality validation from pmxlr8/ChessMaster*")
+        
+        # Calculate quality metrics from the processed data
+        total_games = data['total_count']
+        
+        # Get the raw lengths data for quality calculation
+        lengths_df = data['lengths']
+        
+        # Calculate quality metrics
+        valid_moves = (lengths_df['num_moves'] > 0).sum() if 'num_moves' in lengths_df.columns else 0
+        moves_score = (valid_moves / total_games * 100) if total_games > 0 else 0
+        
+        # ECO coverage from openings data
+        openings_df = data['openings']
+        total_with_eco = openings_df['count'].sum() if not openings_df.empty else 0
+        eco_score = (total_with_eco / total_games * 100) if total_games > 0 else 0
+        
+        # Result validity from results data
+        results_df = data.get('results')
+        total_with_result = results_df['count'].sum() if results_df is not None and not results_df.empty else 0
+        result_score = (total_with_result / total_games * 100) if total_games > 0 else 0
+        
+        # Overall quality score
+        overall_score = (eco_score + result_score + moves_score) / 3
+        
+        # Display quality metrics
+        q_col1, q_col2, q_col3, q_col4 = st.columns(4)
+        
+        with q_col1:
+            st.metric(
+                "✅ Quality Score", 
+                f"{overall_score:.1f}%",
+                delta="Valid" if overall_score > 95 else "Check Data"
+            )
+        with q_col2:
+            st.metric("📖 ECO Coverage", f"{eco_score:.1f}%")
+        with q_col3:
+            st.metric("🎯 Result Validity", f"{result_score:.1f}%")
+        with q_col4:
+            st.metric("♟️ Moves Validity", f"{moves_score:.1f}%")
+        
+        # Expandable quality details
+        with st.expander("📊 Data Quality Details", expanded=False):
+            quality_data = {
+                'Metric': ['ECO Code Coverage', 'Result Format Validity', 'Move Count Validity'],
+                'Valid Count': [int(total_with_eco), int(total_with_result), int(valid_moves)],
+                'Total': [total_games, total_games, total_games],
+                'Score': [f"{eco_score:.1f}%", f"{result_score:.1f}%", f"{moves_score:.1f}%"]
+            }
+            st.dataframe(pd.DataFrame(quality_data), use_container_width=True, hide_index=True)
+            
+            # Quality gauge
+            gauge_fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=overall_score,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "Overall Data Quality"},
+                gauge={
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': "#00CC96" if overall_score > 80 else "#FFA15A"},
+                    'steps': [
+                        {'range': [0, 50], 'color': "#EF553B"},
+                        {'range': [50, 80], 'color': "#FFA15A"},
+                        {'range': [80, 100], 'color': "#00CC96"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "black", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 95
+                    }
+                }
+            ))
+            gauge_fig.update_layout(height=250)
+            st.plotly_chart(gauge_fig, use_container_width=True)
+    
+    st.divider()
+    
     if not data:
         st.warning("Waiting for data stream...")
         time.sleep(2)
