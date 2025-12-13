@@ -16,12 +16,11 @@ if 'SPARK_HOME' in os.environ:
 os.environ['SPARK_LOCAL_IP'] = '127.0.0.1'
 os.environ['SPARK_LOCAL_HOSTNAME'] = 'localhost'
 
-# Set Python path for Spark workers (use short 8.3 path to avoid space issues)
-# Short path: C:\Users\HP\DOWNLO~1\BIGDAT~2\CHESSM~1\venv\Scripts\python.exe
-python_short_path = r"C:\Users\HP\DOWNLO~1\BIGDAT~2\CHESSM~1\venv\Scripts\python.exe"
-os.environ['PYSPARK_PYTHON'] = python_short_path
-os.environ['PYSPARK_DRIVER_PYTHON'] = python_short_path
-print(f"Using Python (short path): {python_short_path}")
+# Set Python path for Spark workers - use current Python executable
+python_path = sys.executable
+os.environ['PYSPARK_PYTHON'] = python_path
+os.environ['PYSPARK_DRIVER_PYTHON'] = python_path
+print(f"Using Python: {python_path}")
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
@@ -42,7 +41,7 @@ def create_spark_session():
     return SparkSession.builder \
         .appName(SPARK_APP_NAME) \
         .master(SPARK_MASTER) \
-        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.4") \
+        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1") \
         .config("spark.driver.host", "127.0.0.1") \
         .config("spark.driver.bindAddress", "127.0.0.1") \
         .config("spark.executor.pyspark.memory", "512m") \
