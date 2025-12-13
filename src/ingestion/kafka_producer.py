@@ -68,7 +68,8 @@ def process_file(filename):
     
     count = 0
     try:
-        for game_data in parse_pgn_file(file_path):
+        # Use skip_moves=True for faster processing (we only need metadata for analytics)
+        for game_data in parse_pgn_file(file_path, skip_moves=True):
             # Add source info
             game_data['source'] = source
             game_data['game_type'] = game_type
